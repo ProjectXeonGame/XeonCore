@@ -1,6 +1,6 @@
 import { DataTypes, Model } from "https://deno.land/x/denodb/mod.ts";
 import { v4 } from "https://deno.land/std@0.95.0/uuid/mod.ts";
-import { bcrypt } from "../crypto.ts";
+import { bcrypt } from "../bcrypt.ts";
 import Machine from "./machine.ts";
 import * as path from "https://deno.land/std@0.95.0/path/mod.ts";
 

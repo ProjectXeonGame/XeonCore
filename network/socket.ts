@@ -8,7 +8,7 @@ import {
   WebSocket,
 } from "https://deno.land/std@0.95.0/ws/mod.ts";
 
-import { TTY } from "./tty.ts";
+import { TTY } from "../tty.ts";
 
 import { EventEmitter as EE } from "https://deno.land/x/deno_events@0.1.1/mod.ts";
 

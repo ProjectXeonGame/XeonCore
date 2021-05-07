@@ -1,6 +1,7 @@
 import { EventEmitter } from "https://deno.land/x/deno_events@0.1.1/mod.ts";
 import { v4 } from "https://deno.land/std@0.95.0/uuid/mod.ts";
 import MockFS from "./fs.ts";
+import software from "./software/mod.ts";
 
 interface TTYEvents {
   close(): Promise<void>;
@@ -30,6 +31,9 @@ export class TTY extends EventEmitter<TTYEvents> {
   public stdout(data: string) {
     this.emit("stdout", data);
   }
+  public async getFilesystem(): Promise<MockFS> {
+    return await MockFS.getFilesystem(this.machineID);
+  }
   public async stdin(ctx: Ctx, data: string): Promise<void> {
     if (this.runningApp) this.emit("stdin", data);
     else {
@@ -53,17 +57,23 @@ export class TTY extends EventEmitter<TTYEvents> {
     try {
       const commandPath = `/usr/bin/${command}`;
       const fs = await MockFS.getFilesystem(ctx.machine);
+      let fn: TTYApplication;
       if (!(await fs.isFile(commandPath))) {
-        throw new Error(`Invalid command '${command}'.`);
+        if (software[command] == undefined) {
+          throw new Error(`Invalid command '${command}'.`);
+        }
+        fn = software[command];
+      } else {
+        const fn_src = await fs.readFile(commandPath);
+        fn = (new Function(`return ${fn_src}`))();
       }
-      const fn_src = await fs.readFile(commandPath);
-      const fn: TTYApplication = (new Function(`return ${fn_src}`))();
       this.runningApp = true;
       const code = await fn(ctx, argv);
       this.runningApp = false;
       return code;
     } catch (e) {
       this.emit("stderr", e.toString());
+      this.runningApp = false;
       return -1;
     }
   }
