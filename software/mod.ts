@@ -1,14 +1,10 @@
-import Machine from "../models/machine.ts";
-import User from "../models/users.ts";
+import { TTYApplication } from "../tty.ts";
 
-type SoftwareCaller = (
-  machine: Machine,
-  caller: User,
-  argv: string[],
-) => Promise<number>;
+const software: { [key: string]: TTYApplication } = {};
 
-const software: { [key: string]: SoftwareCaller } = {};
-
-software.echo = async (machine, user, argv): Promise<number> => {
+software.echo = async (ctx, argv): Promise<number> => {
+  ctx.tty.stdout(argv.join(" "));
   return 0;
 };
+
+export default software;

@@ -1,4 +1,3 @@
-import Machine from "./models/machine.ts";
 import { EventEmitter } from "https://deno.land/x/deno_events@0.1.1/mod.ts";
 import { v4 } from "https://deno.land/std@0.95.0/uuid/mod.ts";
 import MockFS from "./fs.ts";
@@ -11,8 +10,6 @@ interface TTYEvents {
 }
 
 export type TTYApplication = (ctx: TTYCtx, argv: string[]) => Promise<number>;
-
-const ttyList: Map<string, TTY[]> = new Map();
 
 export interface Ctx {
   machine: string;
