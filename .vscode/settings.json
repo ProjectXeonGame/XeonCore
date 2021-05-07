@@ -1,0 +1,13 @@
+{
+    "deno.enable": true,
+    "deno.lint": true,
+    "deno.unstable": true,
+    "deno.suggest.completeFunctionCalls": true,
+    "deno.suggest.imports.hosts": {
+        "https://deno.land": true,
+    },
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "denoland.vscode-deno",
+    "editor.tabCompletion": "on",
+    "editor.tabSize": 2
+}

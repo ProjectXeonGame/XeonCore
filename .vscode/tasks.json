@@ -1,0 +1,29 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "deno run",
+            "type": "shell",
+            "command": "deno run --unstable --allow-all main.ts",
+            "problemMatcher": []
+        },
+        {
+            "label": "deno cache",
+            "type": "shell",
+            "command": "deno cache --unstable main.ts",
+            "problemMatcher": []
+        },
+        {
+            "label": "deno compile",
+            "type": "shell",
+            "command": "deno compile --lite --unstable --allow-all --output build/deno_xeon_core main.ts",
+            "problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}
