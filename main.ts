@@ -16,6 +16,9 @@ const ttyManager = new TTYList();
 const _server = new WServer(config.WEBSOCKET_HOST, config.WEBSOCKET_PORT);
 
 _server.on("connect", async (client) => {
+  await client.send(
+    "Please authenticate.\nRegister: /register <username>\nLogin: /auth <username>",
+  );
   client.on("message", async (ev) => {
     try {
       const packet: { [key: string]: any } = JSON.parse(ev);
