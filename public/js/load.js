@@ -183,7 +183,7 @@ window.addEventListener("load", () => {
 
   window.terminal = terminal;
 
-  let ws = new WebSocket("wss://xeon.envis10n.dev/ws");
+  let ws = new WebSocket("wss://xeon.envis10n.dev/ws/");
   window.wsock = ws;
   ws.onopen = () => {
     terminal.log("Connected.");
