@@ -5,6 +5,7 @@ import initDB from "./database.ts";
 import User from "./models/users.ts";
 import TTYList from "./tty.ts";
 import handlers from "./network/handlers/mod.ts";
+import * as http from "./network/http.ts";
 
 console.log(handlers);
 
@@ -51,3 +52,5 @@ _server.on("disconnect", async (client) => {
     }
   }
 });
+
+const httpPromise = http.listen();
