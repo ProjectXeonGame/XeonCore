@@ -1,0 +1,1 @@
+deno --allow-all --unstable main.ts
