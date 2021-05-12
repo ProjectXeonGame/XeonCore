@@ -110,6 +110,8 @@ export class WServer extends EE<WServerEvents> {
 
           this.emit("connect", sock, context);
 
+          let pongTimeout: number | null = null;
+
           const _clientPromise = new Promise(async (resolve, reject) => {
             if (sock == null) reject();
             else {
@@ -122,8 +124,10 @@ export class WServer extends EE<WServerEvents> {
                     this.emit("binary", sock, context, ev);
                   } else if (isWebSocketPongEvent(ev)) {
                     const [, body] = ev;
-                    setTimeout(() => {
+                    if (pongTimeout != null) clearTimeout(pongTimeout);
+                    pongTimeout = setTimeout(() => {
                       sock?.ping();
+                      pongTimeout = null;
                     }, 30000);
                     this.emit("pong", sock, context, body);
                   } else if (isWebSocketCloseEvent(ev)) {
