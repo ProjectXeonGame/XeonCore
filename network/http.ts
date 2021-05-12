@@ -7,13 +7,6 @@ const { signal } = controller;
 
 const app = new Application();
 
-app.use(async (ctx) => {
-  await send(ctx, ctx.request.url.pathname, {
-    root: path.resolve(Deno.cwd(), "public"),
-    index: "index.html",
-  });
-});
-
 export async function listen() {
   return await app.listen({
     port: config.HTTP_PORT,
