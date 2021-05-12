@@ -1,20 +1,22 @@
-import { WSClient } from "../../network/socket.ts";
+import { WebSocket } from "https://deno.land/std@0.95.0/ws/mod.ts";
+import { WSContext } from "../../network/socket.ts";
 import TTYList from "../../tty.ts";
 import { PacketHandler } from "./mod.ts";
 
 const line: PacketHandler = {
   name: "LINE",
   handler: async function (
-    client: WSClient,
+    socket: WebSocket,
+    context: WSContext,
     packet: { [key: string]: any },
     ttyManager: TTYList,
   ): Promise<void> {
     if (
-      client.uid != null && client.mid != null && client.tty != null
+      context.uid != null && context.mid != null && context.tty != null
     ) {
-      await client.tty.stdin({
-        machine: client.mid,
-        caller: client.uid,
+      await context.tty.stdin({
+        machine: context.mid,
+        caller: context.uid,
       }, packet.data as string);
     }
   },

@@ -5,9 +5,6 @@ import initDB from "./database.ts";
 import User from "./models/users.ts";
 import TTYList from "./tty.ts";
 import handlers from "./network/handlers/mod.ts";
-import * as http from "./network/http.ts";
-
-console.log(handlers);
 
 await initDB();
 
@@ -20,29 +17,28 @@ const _server = new WServer(
   config.WEBSOCKET_SSL_KEY,
 );
 
-_server.on("connect", async (client) => {
-  await client.send(
-    "Please authenticate.\nRegister: /register <username>\nLogin: /auth <username>",
-  );
-  client.on("message", async (ev) => {
-    try {
-      const packet: { [key: string]: any } = JSON.parse(ev);
-      ev = JSON.stringify(packet, (k, v) => {
-        if (k == "password") return "*".repeat(10);
-        else return v;
-      }, 2);
-      console.log(client.uuid, ev);
-      if (packet.event != undefined) {
-        const handler = handlers[packet.event as string];
-        if (handler != undefined) {
-          await handler(client, packet, ttyManager);
-        }
+_server.on("connect", async (socket, context) => {
+  await socket.send("Please authenticate.");
+});
+
+_server.on("message", async (socket, context, ev) => {
+  try {
+    const packet: { [key: string]: any } = JSON.parse(ev);
+    ev = JSON.stringify(packet, (k, v) => {
+      if (k == "password") return "*".repeat(10);
+      else return v;
+    }, 2);
+    console.log(context.uuid, ev);
+    if (packet.event != undefined) {
+      const handler = handlers[packet.event as string];
+      if (handler != undefined) {
+        await handler(socket, context, packet, ttyManager);
       }
-    } catch (_e) {
-      console.error(_e);
-      await client.send(_e.toString());
     }
-  });
+  } catch (_e) {
+    console.error(_e);
+    await socket.send(_e.toString());
+  }
 });
 
 _server.on("disconnect", async (client) => {
@@ -61,4 +57,4 @@ _server.on("disconnect", async (client) => {
   }
 });
 
-const httpPromise = http.listen();
+_server.on("error", console.error);

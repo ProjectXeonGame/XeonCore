@@ -1,8 +1,10 @@
-import { WSClient } from "../../network/socket.ts";
+import { WebSocket } from "https://deno.land/std@0.95.0/ws/mod.ts";
+import { WSContext } from "../socket.ts";
 import TTYList from "../../tty.ts";
 
 export type PacketFunction = (
-  client: WSClient,
+  sock: WebSocket,
+  context: WSContext,
   packet: { [key: string]: any },
   ttyManager: TTYList,
 ) => Promise<void>;

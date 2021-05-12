@@ -2,95 +2,54 @@ import {
   serve,
   Server,
   serveTLS,
-} from "https://deno.land/std@0.95.0/http/server.ts";
-import { v4 } from "https://deno.land/std@0.95.0/uuid/mod.ts";
+} from "https://deno.land/std@0.96.0/http/server.ts";
+import { v4 } from "https://deno.land/std@0.96.0/uuid/mod.ts";
 import {
   acceptWebSocket,
   isWebSocketCloseEvent,
-  isWebSocketPingEvent,
   isWebSocketPongEvent,
   WebSocket,
-} from "https://deno.land/std@0.95.0/ws/mod.ts";
+  WebSocketMessage,
+} from "https://deno.land/std@0.96.0/ws/mod.ts";
 
 import { TTY } from "../tty.ts";
 
 import { EventEmitter as EE } from "https://deno.land/x/deno_events@0.1.1/mod.ts";
 
-interface WSClientEvents {
-  message(this: WSClient, ev: string): Promise<void>;
-  binary(this: WSClient, ev: Uint8Array): Promise<void>;
-  ping(this: WSClient, ev?: Uint8Array): Promise<void>;
-  pong(this: WSClient, ev?: Uint8Array): Promise<void>;
-  error(this: WSClient, err: Error): Promise<void>;
-  close(this: WSClient, code: number, reason?: string): Promise<void>;
+export interface WSContext {
+  uuid: string;
+  uid: string | null;
+  mid: string | null;
+  tty: TTY | null;
 }
 
-export class WSClient extends EE<WSClientEvents> {
-  public readonly promise: Promise<void>;
-  public readonly uuid: string = v4.generate();
-  public uid: string | null;
-  public mid: string | null;
-  public tty: TTY | null;
-  constructor(
-    private readonly _sock: WebSocket,
-  ) {
-    super();
-    this.mid = null;
-    this.uid = null;
-    this.tty = null;
-    this.promise = this.handle();
-  }
-  public async send(message: Uint8Array | string) {
-    await this._sock.send(message);
-  }
-  public async ping(body?: Uint8Array) {
-    await this._sock.ping(body);
-  }
-  public async close(code?: number, reason?: string) {
-    code = code || 1000;
-    if (reason != undefined) {
-      await this._sock.close(code, reason);
-    } else {
-      await this._sock.close(code);
-    }
-  }
-  private async handle() {
-    try {
-      for await (const ev of this._sock) {
-        if (this._sock.isClosed) break;
-        if (typeof ev == "string") {
-          this.emit("message", ev);
-        } else if (ev instanceof Uint8Array) {
-          this.emit("binary", ev);
-        } else if (isWebSocketPingEvent(ev)) {
-          const [, body] = ev;
-          this.emit("ping", body);
-        } else if (isWebSocketPongEvent(ev)) {
-          const [, body] = ev;
-          this.emit("pong", body);
-        } else if (isWebSocketCloseEvent(ev)) {
-          const { code, reason } = ev;
-          this.emit("close", code, reason);
-        } else {
-          throw new Error("Invalid WebSocketEvent type.");
-        }
-      }
-    } catch (_err) {
-      this.emit("error", _err);
-    }
-  }
+export interface WebSocketShell {
+  send(message: WebSocketMessage): Promise<void>;
+  close(code: number, reason?: string): Promise<void>;
 }
 
 interface WServerEvents {
-  connect(client: WSClient): Promise<void>;
-  disconnect(client: WSClient): Promise<void>;
+  connect(socket: WebSocket, context: WSContext): Promise<void>;
+  message(
+    socket: WebSocket,
+    context: WSContext,
+    message: string,
+  ): Promise<void>;
+  binary(
+    socket: WebSocket,
+    context: WSContext,
+    data: Uint8Array,
+  ): Promise<void>;
+  pong(socket: WebSocket, context: WSContext, body?: Uint8Array): Promise<void>;
+  close(context: WSContext, code: number, reason?: string): Promise<void>;
+  disconnect(context: WSContext): Promise<void>;
   error(err: Error): Promise<void>;
 }
 
 export class WServer extends EE<WServerEvents> {
   public readonly promise: Promise<void>;
   private server: Server;
-  private clients: Map<string, WSClient> = new Map();
+  private clients: Map<string, WebSocketShell> = new Map();
 
   constructor(
     public readonly host: string,
@@ -117,7 +76,12 @@ export class WServer extends EE<WServerEvents> {
         try {
           // declaration
           let sock: WebSocket | null = null;
-          let client: WSClient | null = null;
+          let context: WSContext = {
+            uuid: v4.generate(),
+            uid: null,
+            mid: null,
+            tty: null,
+          };
 
           // accept ws connection
           sock = await acceptWebSocket({
@@ -127,38 +91,60 @@ export class WServer extends EE<WServerEvents> {
             headers,
           });
 
-          // create client object and map to uuid
-          client = new WSClient(sock);
-          this.clients.set(client.uuid, client);
+          const shell: WebSocketShell = {
+            send: async (message) => {
+              await sock?.send(message);
+            },
+            async close(code, reason) {
+              if (reason != undefined) {
+                await sock?.close(code, reason);
+              } else {
+                await sock?.close(code);
+              }
+            },
+          };
 
-          client.on("error", console.error);
-          client.on("pong", () => {
-            setTimeout(() => {
-              if (!sock?.isClosed) sock?.ping();
-            }, 30000);
-          });
+          this.clients.set(context.uuid, shell);
 
           sock.ping();
 
-          console.log(`Client ${client.uuid} connected.`);
+          console.log(`Client ${context.uuid} connected.`);
 
-          if (client != null) this.emit("connect", client);
+          this.emit("connect", sock, context);
 
-          // Wait on client to close
-          try {
-            await client.promise;
-          } catch (e) {
-            console.error("Error with client", e);
-          }
+          const _clientPromise = new Promise(async (resolve, reject) => {
+            if (sock == null) reject();
+            else {
+              try {
+                for await (const ev of sock) {
+                  if (sock.isClosed) break;
+                  if (typeof ev == "string") {
+                    this.emit("message", sock, context, ev);
+                  } else if (ev instanceof Uint8Array) {
+                    this.emit("binary", sock, context, ev);
+                  } else if (isWebSocketPongEvent(ev)) {
+                    const [, body] = ev;
+                    this.emit("pong", sock, context, body);
+                  } else if (isWebSocketCloseEvent(ev)) {
+                    const { code, reason } = ev;
+                    this.emit("close", context, code, reason);
+                  } else {
+                    throw new Error("Invalid WebSocketEvent type.");
+                  }
+                }
+              } catch (_err) {
+                this.emit("error", _err);
+              }
 
-          console.log(`Client ${client.uuid} disconnected.`);
+              console.log(`Client ${context.uuid} disconnected.`);
 
-          if (client != null) this.emit("disconnect", client);
+              this.emit("disconnect", context);
 
-          // cleanup
-          this.clients.delete(client.uuid);
-          client = null;
-          sock = null;
+              // cleanup
+              this.clients.delete(context.uuid);
+              sock = null;
+            }
+          });
         } catch (err) {
           console.error(`Failed to accept WebSocket: ${err}`);
           this.emit("error", err);
