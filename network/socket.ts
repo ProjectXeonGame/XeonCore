@@ -98,45 +98,49 @@ export class WServer extends EE<WServerEvents> {
   }
   private async handle() {
     console.log(`Listening on ${this.host}:${this.port}...`);
-    for await (const req of serve(`${this.host}:${this.port}`)) {
-      const { conn, r: bufReader, w: bufWriter, headers } = req;
-      try {
-        // declaration
-        let sock: WebSocket | null = null;
-        let client: WSClient | null = null;
+    try {
+      for await (const req of serve(`${this.host}:${this.port}`)) {
+        const { conn, r: bufReader, w: bufWriter, headers } = req;
+        try {
+          // declaration
+          let sock: WebSocket | null = null;
+          let client: WSClient | null = null;
 
-        // accept ws connection
-        sock = await acceptWebSocket({
-          conn,
-          bufReader,
-          bufWriter,
-          headers,
-        });
+          // accept ws connection
+          sock = await acceptWebSocket({
+            conn,
+            bufReader,
+            bufWriter,
+            headers,
+          });
 
-        // create client object and map to uuid
-        client = new WSClient(sock);
-        this.clients.set(client.uuid, client);
+          // create client object and map to uuid
+          client = new WSClient(sock);
+          this.clients.set(client.uuid, client);
 
-        console.log(`Client ${client.uuid} connected.`);
+          console.log(`Client ${client.uuid} connected.`);
 
-        if (client != null) this.emit("connect", client);
+          if (client != null) this.emit("connect", client);
 
-        // Wait on client to close
-        await client.promise;
+          // Wait on client to close
+          await client.promise;
 
-        console.log(`Client ${client.uuid} disconnected.`);
+          console.log(`Client ${client.uuid} disconnected.`);
 
-        if (client != null) this.emit("disconnect", client);
+          if (client != null) this.emit("disconnect", client);
 
-        // cleanup
-        this.clients.delete(client.uuid);
-        client = null;
-        sock = null;
-      } catch (err) {
-        console.error(`Failed to accept WebSocket: ${err}`);
-        this.emit("error", err);
-        await req.respond({ status: 400 });
+          // cleanup
+          this.clients.delete(client.uuid);
+          client = null;
+          sock = null;
+        } catch (err) {
+          console.error(`Failed to accept WebSocket: ${err}`);
+          this.emit("error", err);
+          await req.respond({ status: 400 });
+        }
       }
+    } catch (err) {
+      console.error("Error with HTTP request:", err);
     }
   }
 }
