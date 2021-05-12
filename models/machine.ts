@@ -17,7 +17,7 @@ export default class Machine extends Model {
       primaryKey: true,
     },
     uuid: DataTypes.STRING,
-    filesystem: DataTypes.STRING,
+    filesystem: DataTypes.JSON,
   };
   static async new(): Promise<Machine> {
     return await Machine.create({

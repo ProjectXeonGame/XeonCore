@@ -4,7 +4,13 @@ import { posix as path } from "https://deno.land/std@0.95.0/path/mod.ts";
 export default class MockFS {
   private _fs: { [key: string]: string | null };
   constructor(private machine: Machine) {
-    this._fs = JSON.parse(this.machine.filesystem as string);
+    if (typeof machine.filesystem == "string") {
+      this._fs = JSON.parse(this.machine.filesystem as string);
+    } else {
+      this._fs = this.machine.filesystem as unknown as {
+        [key: string]: string | null;
+      };
+    }
   }
   private async update(): Promise<void> {
     this.machine.filesystem = JSON.stringify(this._fs);
