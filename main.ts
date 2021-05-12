@@ -13,7 +13,12 @@ await initDB();
 
 const ttyManager = new TTYList();
 
-const _server = new WServer(config.WEBSOCKET_HOST, config.WEBSOCKET_PORT);
+const _server = new WServer(
+  config.WEBSOCKET_HOST,
+  config.WEBSOCKET_PORT,
+  config.WEBSOCKET_SSL_CERT,
+  config.WEBSOCKET_SSL_KEY,
+);
 
 _server.on("connect", async (client) => {
   await client.send(
