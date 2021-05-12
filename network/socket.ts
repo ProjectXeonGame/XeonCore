@@ -106,8 +106,6 @@ export class WServer extends EE<WServerEvents> {
 
           this.clients.set(context.uuid, shell);
 
-          sock.ping();
-
           console.log(`Client ${context.uuid} connected.`);
 
           this.emit("connect", sock, context);
@@ -124,6 +122,9 @@ export class WServer extends EE<WServerEvents> {
                     this.emit("binary", sock, context, ev);
                   } else if (isWebSocketPongEvent(ev)) {
                     const [, body] = ev;
+                    setTimeout(() => {
+                      sock?.ping();
+                    }, 30000);
                     this.emit("pong", sock, context, body);
                   } else if (isWebSocketCloseEvent(ev)) {
                     const { code, reason } = ev;
@@ -145,6 +146,7 @@ export class WServer extends EE<WServerEvents> {
               sock = null;
             }
           });
+          sock.ping();
         } catch (err) {
           console.error(`Failed to accept WebSocket: ${err}`);
           this.emit("error", err);
