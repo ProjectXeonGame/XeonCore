@@ -73,9 +73,6 @@ export class WSClient extends EE<WSClientEvents> {
       }
     } catch (_err) {
       this.emit("error", _err);
-      if (!this._sock.isClosed) {
-        await this.close(1005).catch(console.error);
-      }
     }
   }
 }
@@ -118,12 +115,18 @@ export class WServer extends EE<WServerEvents> {
           client = new WSClient(sock);
           this.clients.set(client.uuid, client);
 
+          client.on("error", console.error);
+
           console.log(`Client ${client.uuid} connected.`);
 
           if (client != null) this.emit("connect", client);
 
           // Wait on client to close
-          await client.promise;
+          try {
+            await client.promise;
+          } catch (e) {
+            console.error("Error with client", e);
+          }
 
           console.log(`Client ${client.uuid} disconnected.`);
 
