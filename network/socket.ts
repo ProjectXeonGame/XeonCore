@@ -74,8 +74,6 @@ export class WServer extends EE<WServerEvents> {
       for await (const req of this.server) {
         const { conn, r: bufReader, w: bufWriter, headers } = req;
         try {
-          // declaration
-          let sock: WebSocket | null = null;
           let context: WSContext = {
             uuid: v4.generate(),
             uid: null,
@@ -84,7 +82,7 @@ export class WServer extends EE<WServerEvents> {
           };
 
           // accept ws connection
-          sock = await acceptWebSocket({
+          let sock = await acceptWebSocket({
             conn,
             bufReader,
             bufWriter,
@@ -93,7 +91,7 @@ export class WServer extends EE<WServerEvents> {
 
           const shell: WebSocketShell = {
             send: async (message) => {
-              await sock?.send(message);
+              await sock.send(message);
             },
             async close(code, reason) {
               if (reason != undefined) {
@@ -147,7 +145,6 @@ export class WServer extends EE<WServerEvents> {
 
               // cleanup
               this.clients.delete(context.uuid);
-              sock = null;
             }
           });
           sock.ping();
