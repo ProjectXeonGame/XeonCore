@@ -2,7 +2,7 @@ import config from "./config.ts";
 import {
   Database,
   MongoDBConnector,
-  SQLite3Connector,
+  PostgresConnector,
 } from "https://deno.land/x/denodb/mod.ts";
 
 import models from "./models/mod.ts";
@@ -12,7 +12,13 @@ const connector = config.DATABASE_CONNECTOR == "mongodb"
     uri: config.MONGODB_URI,
     database: "project_xeon",
   })
-  : new SQLite3Connector({ filepath: config.SQLITE_FILEPATH });
+  : new PostgresConnector({
+    host: config.POSTGRESQL_HOST,
+    port: config.POSTGRESQL_PORT,
+    username: config.POSTGRESQL_USER,
+    password: config.POSTGRESQL_PASS,
+    database: config.POSTGRESQL_DB,
+  });
 
 const db = new Database({ connector });
 

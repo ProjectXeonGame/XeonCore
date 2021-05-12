@@ -3,8 +3,12 @@ import { config } from "https://deno.land/x/dotenv@v2.0.0/mod.ts";
 const conf = config({ safe: true, allowEmptyValues: true });
 
 export interface XeonConfig {
-  DATABASE_CONNECTOR: "mongodb" | "sqlite3";
-  SQLITE_FILEPATH: string;
+  DATABASE_CONNECTOR: "mongodb" | "postgresql";
+  POSTGRESQL_HOST: string;
+  POSTGRESQL_PORT: number;
+  POSTGRESQL_USER: string;
+  POSTGRESQL_PASS: string;
+  POSTGRESQL_DB: string;
   MONGODB_URI: string;
   WEBSOCKET_HOST: string;
   WEBSOCKET_PORT: number;
@@ -15,8 +19,12 @@ export interface XeonConfig {
 }
 
 const _config: XeonConfig = {
-  SQLITE_FILEPATH: conf.SQLITE_FILEPATH,
-  DATABASE_CONNECTOR: conf.DATABASE_CONNECTOR as "mongodb" | "sqlite3",
+  POSTGRESQL_DB: conf.POSTGRESQL_DB,
+  POSTGRESQL_HOST: conf.POSTGRESQL_HOST,
+  POSTGRESQL_PASS: conf.POSTGRESQL_PASS,
+  POSTGRESQL_PORT: Number(conf.POSTGRESQL_PORT),
+  POSTGRESQL_USER: conf.POSTGRESQL_USER,
+  DATABASE_CONNECTOR: conf.DATABASE_CONNECTOR as "mongodb" | "postgresql",
   MONGODB_URI: conf.MONGODB_URI,
   WEBSOCKET_HOST: conf.WEBSOCKET_HOST,
   WEBSOCKET_PORT: Number(conf.WEBSOCKET_PORT),

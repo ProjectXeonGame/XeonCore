@@ -12,10 +12,12 @@ export default class Machine extends Model {
   static table = "machines";
   static fields = {
     _id: {
+      autoIncrement: true,
+      type: DataTypes.INTEGER,
       primaryKey: true,
     },
     uuid: DataTypes.STRING,
-    filesystem: DataTypes.JSON,
+    filesystem: DataTypes.STRING,
   };
   static async new(): Promise<Machine> {
     return await Machine.create({

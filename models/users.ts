@@ -8,21 +8,26 @@ export default class User extends Model {
   static table = "users";
   static fields = {
     _id: {
+      autoIncrement: true,
+      type: DataTypes.INTEGER,
       primaryKey: true,
     },
     uuid: DataTypes.STRING,
     username: DataTypes.STRING,
     hash: DataTypes.STRING,
-    last_login: DataTypes.BIG_INTEGER,
+    last_login: DataTypes.STRING,
     is_online: DataTypes.BOOLEAN,
     machine_id: DataTypes.STRING,
   };
-  static async new(username: string, password: string): Promise<User> {
+  static async new(
+    username: string,
+    password: string,
+  ): Promise<User> {
     return await User.create({
       uuid: v4.generate(),
       username,
       hash: await bcrypt.hash(password, await bcrypt.genSalt()),
-      last_login: Date.now(),
+      last_login: Date.now().toString(),
       is_online: false,
       machine_id: "",
     });

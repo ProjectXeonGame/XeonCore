@@ -28,7 +28,7 @@ const authenticate: PacketHandler = {
     context.uid = user.uuid as string;
     context.mid = user.machine_id as string;
     user.is_online = true;
-    user.last_login = Date.now();
+    user.last_login = Date.now().toString();
     await user.update();
     await socket.send("Authenticated successfully. Welcome!");
     await socket.send("Connecting to terminal instance...");
