@@ -1,4 +1,8 @@
-import { serve } from "https://deno.land/std@0.95.0/http/server.ts";
+import {
+  serve,
+  Server,
+  serveTLS,
+} from "https://deno.land/std@0.95.0/http/server.ts";
 import { v4 } from "https://deno.land/std@0.95.0/uuid/mod.ts";
 import {
   acceptWebSocket,
@@ -85,18 +89,30 @@ interface WServerEvents {
 
 export class WServer extends EE<WServerEvents> {
   public readonly promise: Promise<void>;
+  private server: Server;
   private clients: Map<string, WSClient> = new Map();
+
   constructor(
     public readonly host: string,
     public readonly port: number,
+    cert?: string,
+    key?: string,
   ) {
     super();
+    this.server = (cert != undefined && key != undefined)
+      ? serveTLS({
+        hostname: this.host,
+        port: this.port,
+        certFile: cert,
+        keyFile: key,
+      })
+      : serve({ hostname: this.host, port: this.port });
     this.promise = this.handle();
   }
   private async handle() {
     console.log(`Listening on ${this.host}:${this.port}...`);
     try {
-      for await (const req of serve(`${this.host}:${this.port}`)) {
+      for await (const req of this.server) {
         const { conn, r: bufReader, w: bufWriter, headers } = req;
         try {
           // declaration
