@@ -95,9 +95,9 @@ export class WServer extends EE<WServerEvents> {
             },
             async close(code, reason) {
               if (reason != undefined) {
-                await sock?.close(code, reason);
+                await sock.close(code, reason);
               } else {
-                await sock?.close(code);
+                await sock.close(code);
               }
             },
           };
@@ -124,7 +124,8 @@ export class WServer extends EE<WServerEvents> {
                     const [, body] = ev;
                     if (pongTimeout != null) clearTimeout(pongTimeout);
                     pongTimeout = setTimeout(() => {
-                      sock?.ping();
+                      if (sock.isClosed) return;
+                      sock.ping();
                       pongTimeout = null;
                     }, 30000);
                     this.emit("pong", sock, context, body);
