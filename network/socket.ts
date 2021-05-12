@@ -132,6 +132,13 @@ export class WServer extends EE<WServerEvents> {
           this.clients.set(client.uuid, client);
 
           client.on("error", console.error);
+          client.on("pong", () => {
+            setTimeout(() => {
+              if (!sock?.isClosed) sock?.ping();
+            }, 30000);
+          });
+
+          sock.ping();
 
           console.log(`Client ${client.uuid} connected.`);
 
