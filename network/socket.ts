@@ -53,6 +53,7 @@ export class WSClient extends EE<WSClientEvents> {
   private async handle() {
     try {
       for await (const ev of this._sock) {
+        if (this._sock.isClosed) break;
         if (typeof ev == "string") {
           this.emit("message", ev);
         } else if (ev instanceof Uint8Array) {

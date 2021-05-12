@@ -7,7 +7,7 @@ type APIRouterInit = () => Router;
 let isLoaded: boolean = false;
 
 export default async function (): Promise<Router> {
-  if (isLoaded) return api;
+  if (isLoaded) return new Router().use("/api", api.routes());
   for await (const el of Deno.readDir("./network/api")) {
     if (el.isFile && el.name != "mod.ts") {
       const fn: APIRouterInit = (await import(`./${el.name}`)).default;
@@ -15,5 +15,5 @@ export default async function (): Promise<Router> {
       api.use("/v1", endpoint.routes());
     }
   }
-  return api;
+  return new Router().use("/api", api.routes());
 }
