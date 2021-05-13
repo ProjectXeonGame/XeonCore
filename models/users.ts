@@ -7,9 +7,9 @@ import * as path from "https://deno.land/std@0.95.0/path/mod.ts";
 export default class User extends Model {
   static table = "users";
   static fields = {
-    _id: {
-      autoIncrement: true,
+    id: {
       type: DataTypes.INTEGER,
+      autoIncrement: true,
       primaryKey: true,
     },
     uuid: DataTypes.STRING,

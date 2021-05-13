@@ -19,11 +19,7 @@ const register: PacketHandler = {
     if (await User.findUser({ username }) != null) {
       throw new Error("Unable to register.");
     }
-    const user = await User.new(username, password);
-    await socket.send("Setting up machine...");
-    const machine = await Machine.new();
-    user.machine_id = machine.uuid as string;
-    await user.update();
+    await User.new(username, password);
     await socket.send(
       "Registration complete. Please authenticate using your new credentials.",
     );
