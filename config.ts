@@ -4,12 +4,12 @@ const conf = config({ safe: true, allowEmptyValues: true });
 
 export interface XeonConfig {
   DATABASE_CONNECTOR: "mongodb" | "postgresql";
-  POSTGRESQL_HOST: string;
-  POSTGRESQL_PORT: number;
-  POSTGRESQL_USER: string;
-  POSTGRESQL_PASS: string;
-  POSTGRESQL_DB: string;
-  MONGODB_URI: string;
+  POSTGRESQL_HOST?: string;
+  POSTGRESQL_PORT?: number;
+  POSTGRESQL_USER?: string;
+  POSTGRESQL_PASS?: string;
+  POSTGRESQL_DB?: string;
+  MONGODB_URI?: string;
   WEBSOCKET_HOST: string;
   WEBSOCKET_PORT: number;
   WEBSOCKET_SSL_KEY?: string;
