@@ -21,30 +21,82 @@ export interface TTYCtx extends Ctx {
   tty: TTY;
 }
 
+export function splitCommandsByPipe(cmd: string): string[] {
+  return cmd.split(" | ");
+}
+
+export function splitCommandsByMult(cmd: string): string[] {
+  return cmd.split(" && ");
+}
+
 export class TTY extends EventEmitter<TTYEvents> {
   public readonly uuid: string = v4.generate();
   public runningApp: boolean;
+  private stdoutCatcher: ((data: string) => void)[] = [];
+  private stdoutBuffer: string = "";
   constructor(public readonly machineID: string) {
     super();
     this.runningApp = false;
   }
   public stdout(data: string) {
-    this.emit("stdout", data);
+    if (this.stdoutCatcher.length > 0) this.stdoutBuffer += data;
+    else this.emit("stdout", data);
   }
   public async getFilesystem(): Promise<MockFS> {
     return await MockFS.getFilesystem(this.machineID);
   }
+  private immediateStdinCatch(
+    ctx: Ctx,
+    data: string,
+  ): Promise<string> {
+    return new Promise((resolve, reject) => {
+      this.stdoutCatcher.push((data) => {
+        resolve(data);
+      });
+      setTimeout(() => {
+        this.stdin(ctx, data);
+      }, 1);
+    });
+  }
+  private immediateStdin(
+    ctx: Ctx,
+    data: string,
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        this.stdin(ctx, data).then(resolve).catch(reject);
+      }, 1);
+    });
+  }
   public async stdin(ctx: Ctx, data: string): Promise<void> {
-    if (this.runningApp) this.emit("stdin", data);
-    else {
-      const tctx: TTYCtx = Object.assign(ctx, { tty: this });
-      const comd = data.split(" ");
-      const com = comd.shift();
-      if (com != undefined) {
-        try {
-          await this.run(tctx, com, comd);
-        } catch (_e) {
-          //
+    const cmds = splitCommandsByMult(data);
+    if (cmds.length > 1) {
+      for (const command of cmds) {
+        await this.immediateStdin(ctx, command);
+      }
+    } else {
+      const pipes = splitCommandsByPipe(cmds[0]);
+      if (pipes.length > 1) {
+        let next = "";
+        for (const pipe of pipes) {
+          next = await this.immediateStdinCatch(
+            ctx,
+            [...pipe.split(" "), ...next.split(" ")].map((v) => v.trim()).join(
+              " ",
+            ),
+          );
+        }
+        this.stdout(next);
+      } else {
+        const tctx: TTYCtx = Object.assign(ctx, { tty: this });
+        const comd = pipes[0].trim().split(" ");
+        const com = comd.shift();
+        if (com != undefined) {
+          try {
+            await this.run(tctx, com, comd);
+          } catch (_e) {
+            //
+          }
         }
       }
     }
@@ -70,6 +122,11 @@ export class TTY extends EventEmitter<TTYEvents> {
       this.runningApp = true;
       const code = await fn(ctx, argv);
       this.runningApp = false;
+      if (this.stdoutCatcher.length > 0) {
+        const catcher = this.stdoutCatcher.pop();
+        if (catcher != undefined) catcher(this.stdoutBuffer);
+        this.stdoutBuffer = "";
+      }
       return code;
     } catch (e) {
       this.emit("stderr", e.toString());
