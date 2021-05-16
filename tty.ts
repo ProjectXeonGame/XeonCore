@@ -8,6 +8,7 @@ interface TTYEvents {
   stdout(data: string): Promise<void>;
   stdin(data: string): Promise<void>;
   stderr(data: string): Promise<void>;
+  cwd(newCWD: string): Promise<void>;
 }
 
 export type TTYApplication = (ctx: TTYCtx, argv: string[]) => Promise<number>;
@@ -29,17 +30,40 @@ export function splitCommandsByMult(cmd: string): string[] {
   return cmd.split(" && ");
 }
 
+export function getPipeToFile(
+  cmd: string,
+): { command: string; file: string } | null {
+  let t = cmd.split(" > ");
+  if (t.length > 1) {
+    t = t.map((v) => v.trim());
+    return {
+      command: t[0],
+      file: t[1],
+    };
+  }
+  return null;
+}
+
 export class TTY extends EventEmitter<TTYEvents> {
   public readonly uuid: string = v4.generate();
   public runningApp: boolean;
   private stdoutCatcher: ((data: string) => void)[] = [];
   private stdoutBuffer: string = "";
+  private cwd: string = "/";
   public env: { [key: string]: string } = {
-    CWD: "/",
     UUID: this.uuid,
   };
   constructor(public readonly machineID: string) {
     super();
+    Object.defineProperty(this.env, "CWD", {
+      get: () => {
+        return this.cwd;
+      },
+      set: (v: string) => {
+        this.cwd = v;
+        this.emit("cwd", v);
+      },
+    });
     this.env.HWID = this.machineID;
     this.runningApp = false;
   }
@@ -106,13 +130,20 @@ export class TTY extends EventEmitter<TTYEvents> {
           this.emit("stderr", e.toString());
         }
       } else {
-        const tctx: TTYCtx = Object.assign(ctx, { tty: this });
-        const comd = pipes[0].trim().split(" ");
-        const com = comd.shift();
-        if (com != undefined) {
-          const exitCode = await this.run(tctx, com, comd);
-          if (exitCode != 0) {
-            throw new Error(`Process exited with code ${exitCode}`);
+        const pipefile = getPipeToFile(pipes[0]);
+        if (pipefile != null) {
+          const out = await this.immediateStdinCatch(ctx, pipefile.command);
+          const fs = await this.getFilesystem();
+          await fs.appendFile(pipefile.file, out, this.env.CWD);
+        } else {
+          const tctx: TTYCtx = Object.assign(ctx, { tty: this });
+          const comd = pipes[0].trim().split(" ");
+          const com = comd.shift();
+          if (com != undefined) {
+            const exitCode = await this.run(tctx, com, comd);
+            if (exitCode != 0) {
+              throw new Error(`Process exited with code ${exitCode}`);
+            }
           }
         }
       }

@@ -39,6 +39,10 @@ const authenticate: PacketHandler = {
     context.tty.on("stderr", (data) => {
       socket.send(data);
     });
+    context.tty.on("cwd", (cwd) => {
+      socket.send(JSON.stringify({ event: "cwd", cwd }));
+    });
+    context.tty.emit("cwd", "/");
     await socket.send(`Welcome, ${user.username}.`);
   },
 };
