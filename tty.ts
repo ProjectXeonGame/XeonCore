@@ -34,8 +34,13 @@ export class TTY extends EventEmitter<TTYEvents> {
   public runningApp: boolean;
   private stdoutCatcher: ((data: string) => void)[] = [];
   private stdoutBuffer: string = "";
+  public env: { [key: string]: string } = {
+    CWD: "/",
+    UUID: this.uuid,
+  };
   constructor(public readonly machineID: string) {
     super();
+    this.env.HWID = this.machineID;
     this.runningApp = false;
   }
   public stdout(data: string) {
@@ -50,11 +55,14 @@ export class TTY extends EventEmitter<TTYEvents> {
     data: string,
   ): Promise<string> {
     return new Promise((resolve, reject) => {
-      this.stdoutCatcher.push((data) => {
+      const idx = this.stdoutCatcher.push((data) => {
         resolve(data);
-      });
+      }) - 1;
       setTimeout(() => {
-        this.stdin(ctx, data);
+        this.stdin(ctx, data).catch((e) => {
+          this.stdoutCatcher.splice(idx, 1);
+          reject(e);
+        });
       }, 1);
     });
   }
@@ -72,30 +80,39 @@ export class TTY extends EventEmitter<TTYEvents> {
     const cmds = splitCommandsByMult(data);
     if (cmds.length > 1) {
       for (const command of cmds) {
-        await this.immediateStdin(ctx, command);
+        try {
+          await this.immediateStdin(ctx, command);
+        } catch (e) {
+          this.emit("stderr", e.toString());
+          break;
+        }
       }
     } else {
       const pipes = splitCommandsByPipe(cmds[0]);
       if (pipes.length > 1) {
-        let next = "";
-        for (const pipe of pipes) {
-          next = await this.immediateStdinCatch(
-            ctx,
-            [...pipe.split(" "), ...next.split(" ")].map((v) => v.trim()).join(
-              " ",
-            ),
-          );
+        try {
+          let next = "";
+          for (const pipe of pipes) {
+            next = await this.immediateStdinCatch(
+              ctx,
+              [...pipe.split(" "), ...next.split(" ")].map((v) => v.trim())
+                .join(
+                  " ",
+                ),
+            );
+          }
+          this.stdout(next);
+        } catch (e) {
+          this.emit("stderr", e.toString());
         }
-        this.stdout(next);
       } else {
         const tctx: TTYCtx = Object.assign(ctx, { tty: this });
         const comd = pipes[0].trim().split(" ");
         const com = comd.shift();
         if (com != undefined) {
-          try {
-            await this.run(tctx, com, comd);
-          } catch (_e) {
-            //
+          const exitCode = await this.run(tctx, com, comd);
+          if (exitCode != 0) {
+            throw new Error(`Process exited with code ${exitCode}`);
           }
         }
       }
@@ -107,20 +124,23 @@ export class TTY extends EventEmitter<TTYEvents> {
     argv: string[],
   ): Promise<number> {
     try {
-      const commandPath = `/usr/bin/${command}`;
-      const fs = await MockFS.getFilesystem(ctx.machine);
       let fn: TTYApplication;
-      if (!(await fs.isFile(commandPath))) {
-        if (software[command] == undefined) {
-          throw new Error(`Invalid command '${command}'.`);
-        }
-        fn = software[command];
-      } else {
-        const fn_src = await fs.readFile(commandPath);
-        fn = (new Function(`return ${fn_src}`))();
+      if (software[command] == undefined) {
+        throw new Error(`Invalid command '${command}'.`);
       }
+      fn = software[command];
       this.runningApp = true;
-      const code = await fn(ctx, argv);
+      const code = await fn(
+        ctx,
+        argv.map((v) => {
+          let t = v;
+          for (const key of Object.keys(this.env)) {
+            const reg = new RegExp(`\\$${key}`, "ig");
+            t = t.replace(reg, this.env[key]);
+          }
+          return t;
+        }),
+      );
       this.runningApp = false;
       if (this.stdoutCatcher.length > 0) {
         const catcher = this.stdoutCatcher.pop();
@@ -131,7 +151,7 @@ export class TTY extends EventEmitter<TTYEvents> {
     } catch (e) {
       this.emit("stderr", e.toString());
       this.runningApp = false;
-      return -1;
+      return 1;
     }
   }
   end() {
