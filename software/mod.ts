@@ -1,5 +1,4 @@
 import { TTYApplication } from "../tty.ts";
-import * as path from "https://deno.land/std@0.95.0/path/posix.ts";
 
 const software: { [key: string]: TTYApplication } = {};
 

@@ -1,12 +1,12 @@
 // deno-lint-ignore-file require-await
 import config from "./config.ts";
 import { WServer } from "./network/socket.ts";
-import initDB from "./database.ts";
+import db from "./database.ts";
 import User from "./models/users.ts";
 import TTYList from "./tty.ts";
 import handlers from "./network/handlers/mod.ts";
 
-await initDB();
+if (db) console.log("Loaded DB");
 
 const ttyManager = new TTYList();
 

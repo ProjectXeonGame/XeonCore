@@ -20,7 +20,7 @@ const authenticate: PacketHandler = {
     const machine = await Machine.findMachine(user.machine_id as string);
     if (machine == null) {
       await socket.send("Machine not found. Rebuilding...");
-      const nmachine = await Machine.new(user.id as number);
+      const nmachine = await Machine.new();
       user.machine_id = nmachine.uuid as string;
       await user.update();
       await socket.send("Machine rebuilt.");
@@ -28,7 +28,7 @@ const authenticate: PacketHandler = {
     context.uid = user.uuid as string;
     context.mid = user.machine_id as string;
     user.is_online = true;
-    user.last_login = Date.now().toString();
+    user.last_login = Date.now();
     await user.update();
     await socket.send("Authenticated successfully. Welcome!");
     await socket.send("Connecting to terminal instance...");

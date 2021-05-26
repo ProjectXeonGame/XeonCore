@@ -1,4 +1,5 @@
-import Machine from "./models/machine.ts";
+import Machine, { ArangoMachine } from "./models/machine.ts";
+import { Document } from "https://deno.land/x/darango/mod.ts";
 import { posix as path } from "https://deno.land/std@0.95.0/path/mod.ts";
 
 export interface MockStat {
@@ -12,7 +13,7 @@ export interface MockStat {
 
 export default class MockFS {
   private _fs: { [key: string]: string | null };
-  constructor(private machine: Machine) {
+  constructor(private machine: Document<ArangoMachine>) {
     if (typeof machine.filesystem == "string") {
       this._fs = JSON.parse(this.machine.filesystem as string);
     } else {
