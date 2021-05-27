@@ -1,20 +1,10 @@
 import { v4 } from "https://deno.land/std@0.95.0/uuid/mod.ts";
 import { bcrypt } from "../bcrypt.ts";
 import { Document } from "https://deno.land/x/darango/mod.ts";
-import db from "../database.ts";
+import { users } from "../database.ts";
 import Machine from "./machine.ts";
 import * as path from "https://deno.land/std@0.95.0/path/mod.ts";
-
-const users = await db.collection<ArangoUser>("users");
-
-export interface ArangoUser {
-  uuid: string;
-  username: string;
-  hash: string;
-  last_login: number;
-  is_online: boolean;
-  machine_id: string;
-}
+import { ArangoUser } from "./mod.ts";
 
 export default class User {
   static async new(

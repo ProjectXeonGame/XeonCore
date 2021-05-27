@@ -1,4 +1,5 @@
-import Machine, { ArangoMachine } from "./models/machine.ts";
+import Machine from "./models/machine.ts";
+import { ArangoMachine } from "./models/mod.ts";
 import { Document } from "https://deno.land/x/darango/mod.ts";
 import { posix as path } from "https://deno.land/std@0.95.0/path/mod.ts";
 

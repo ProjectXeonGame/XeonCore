@@ -1,8 +1,7 @@
 import { v4 } from "https://deno.land/std@0.95.0/uuid/mod.ts";
-import db from "../database.ts";
+import { machines } from "../database.ts";
 import { Document } from "https://deno.land/x/darango/mod.ts";
-
-const machines = await db.collection<ArangoMachine>("machines");
+import { ArangoMachine } from "./mod.ts";
 
 const defaultFS = JSON.stringify({
   "/": null,
@@ -10,11 +9,6 @@ const defaultFS = JSON.stringify({
   "/usr": null,
   "/usr/bin": null,
 });
-
-export interface ArangoMachine {
-  uuid: string;
-  filesystem: string;
-}
 
 export default class Machine {
   static async new(): Promise<Document<ArangoMachine>> {

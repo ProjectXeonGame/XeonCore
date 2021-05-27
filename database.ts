@@ -1,5 +1,6 @@
 import config from "./config.ts";
 import { Arango } from "https://deno.land/x/darango/mod.ts";
+import { ArangoMachine, ArangoUser } from "./models/mod.ts";
 
 const db = await Arango.basicAuth({
   uri: config.ARANGO_URI,
@@ -7,4 +8,10 @@ const db = await Arango.basicAuth({
   password: config.ARANGO_PASSWORD,
 });
 
-export default db;
+/* Collections */
+export const users = await db.collection<ArangoUser>("users");
+export const machines = await db.collection<ArangoMachine>("machines");
+
+export const query = db.query;
+
+console.log("Database loaded.");

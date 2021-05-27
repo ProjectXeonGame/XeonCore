@@ -6,6 +6,7 @@ export interface XeonConfig {
   ARANGO_URI: string;
   ARANGO_USER: string;
   ARANGO_PASSWORD: string;
+  ARANGO_COLLECTIONS: string[];
   WEBSOCKET_HOST: string;
   WEBSOCKET_PORT: number;
   WEBSOCKET_SSL_KEY?: string;
@@ -18,6 +19,7 @@ const _config: XeonConfig = {
   ARANGO_URI: conf.ARANGO_URI,
   ARANGO_PASSWORD: conf.ARANGO_PASSWORD,
   ARANGO_USER: conf.ARANGO_USER,
+  ARANGO_COLLECTIONS: conf.ARANGO_COLLECTIONS.split(",").map((v) => v.trim()),
   WEBSOCKET_HOST: conf.WEBSOCKET_HOST,
   WEBSOCKET_PORT: Number(conf.WEBSOCKET_PORT),
   WEBSOCKET_SSL_CERT: conf.WEBSOCKET_SSL_CERT,

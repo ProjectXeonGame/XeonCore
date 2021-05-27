@@ -1,15 +1,13 @@
-import { Model, Relationships } from "https://deno.land/x/denodb/mod.ts";
-
-import User from "./users.ts";
-import Machine from "./machine.ts";
-
-const models: (typeof Model)[] = [
-  User,
-  Machine,
-];
-
-export function relate() {
-  Relationships.belongsTo(Machine, User);
+export interface ArangoUser {
+  uuid: string;
+  username: string;
+  hash: string;
+  last_login: number;
+  is_online: boolean;
+  machine_id: string;
 }
 
-export default models;
+export interface ArangoMachine {
+  uuid: string;
+  filesystem: string;
+}
