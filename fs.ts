@@ -110,6 +110,47 @@ export default class MockFS {
     );
     return res;
   }
+  public async rmdir(p: string, cwd: string = "/"): Promise<void> {
+    if (!path.isAbsolute(p)) p = path.resolve(cwd, p);
+    const f = this._fs[p];
+    if (typeof f == "string") throw new Error("Cannot remove file.");
+    else if (f != null) throw new Error(`Path '${p}' does not exist.`);
+    if ((await this.readDir(p)).length > 0) {
+      throw new Error(`Directory '${p}' is not empty.`);
+    }
+    delete this._fs[p];
+    await this.update();
+  }
+  public async rm(
+    p: string,
+    recurse: boolean = false,
+    cwd: string = "/",
+  ): Promise<void> {
+    await new Promise<void>((resolve, reject) => {
+      setTimeout(async () => {
+        try {
+          if (!path.isAbsolute(p)) p = path.resolve(cwd, p);
+          const f = this._fs[p];
+          if (f == null && !recurse) {
+            throw new Error("Cannot remove directory.");
+          } else if (f != null && typeof f != "string") {
+            throw new Error(`Path '${p}' does not exist.`);
+          }
+          if (recurse && f == null) {
+            const files = await this.readDir(p);
+            for (const file of files) {
+              await this.rm(path.resolve(p, file), recurse, cwd);
+            }
+          }
+          delete this._fs[p];
+          resolve();
+        } catch (e) {
+          reject(e);
+        }
+      }, 1);
+    });
+    await this.update();
+  }
   public async writeFile(
     p: string,
     data: string,

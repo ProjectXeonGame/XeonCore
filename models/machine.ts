@@ -11,10 +11,16 @@ const defaultFS = JSON.stringify({
 });
 
 export default class Machine {
-  static async new(): Promise<Document<ArangoMachine>> {
+  static async new(username?: string): Promise<Document<ArangoMachine>> {
+    let fs = defaultFS;
+    if (username !== undefined) {
+      const obj: { [key: string]: string | null } = JSON.parse(fs);
+      obj[`/home/${username}`] = null;
+      fs = JSON.stringify(obj);
+    }
     return await machines.create({
       uuid: v4.generate(),
-      filesystem: defaultFS,
+      filesystem: fs,
     });
   }
   static async findMachine(

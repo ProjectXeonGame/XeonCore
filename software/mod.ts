@@ -3,7 +3,9 @@ import { TTYApplication } from "../tty.ts";
 const software: { [key: string]: TTYApplication } = {};
 
 software.echo = async function (ctx, argv): Promise<number> {
-  ctx.tty.stdout(argv.join(" ").replace(/\\n/g, "\n"));
+  ctx.tty.stdout(
+    argv.join(" ").replace(/\\n/g, "\n").replace(/\\x1b/g, "\x1b"),
+  );
   return 0;
 };
 
@@ -23,6 +25,39 @@ software.mkdir = async function (ctx, argv): Promise<number> {
   try {
     const fs = await ctx.tty.getFilesystem();
     await fs.mkdir(argv[0], ctx.tty.env.CWD);
+    return 0;
+  } catch (e) {
+    ctx.tty.emit("stderr", e.toString());
+    return 1;
+  }
+};
+
+software.rmdir = async function (ctx, argv): Promise<number> {
+  try {
+    const fs = await ctx.tty.getFilesystem();
+    await fs.rmdir(argv[0], ctx.tty.env.CWD);
+    return 0;
+  } catch (e) {
+    ctx.tty.emit("stderr", e.toString());
+    return 1;
+  }
+};
+
+software.rm = async function (ctx, argv): Promise<number> {
+  try {
+    const fs = await ctx.tty.getFilesystem();
+    await fs.rm(argv[0], false, ctx.tty.env.CWD);
+    return 0;
+  } catch (e) {
+    ctx.tty.emit("stderr", e.toString());
+    return 1;
+  }
+};
+
+software.rmp = async function (ctx, argv): Promise<number> {
+  try {
+    const fs = await ctx.tty.getFilesystem();
+    await fs.rm(argv[0], true, ctx.tty.env.CWD);
     return 0;
   } catch (e) {
     ctx.tty.emit("stderr", e.toString());

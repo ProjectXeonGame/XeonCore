@@ -61,6 +61,7 @@ export class TTY extends EventEmitter<TTYEvents> {
       },
       set: (v: string) => {
         this.cwd = v;
+        if (this.env.HOME !== undefined) v = v.replace(this.env.HOME, "~");
         this.emit("cwd", v);
       },
     });
@@ -155,6 +156,9 @@ export class TTY extends EventEmitter<TTYEvents> {
     argv: string[],
   ): Promise<number> {
     try {
+      if (this.env.HOME !== undefined) {
+        argv = argv.map((v) => v.replace("~", this.env.HOME));
+      }
       let fn: TTYApplication;
       if (software[command] == undefined) {
         throw new Error(`Invalid command '${command}'.`);
@@ -169,6 +173,7 @@ export class TTY extends EventEmitter<TTYEvents> {
             const reg = new RegExp(`\\$${key}`, "ig");
             t = t.replace(reg, this.env[key]);
           }
+          t = t.replace(/\$CWD/ig, this.env.CWD);
           return t;
         }),
       );

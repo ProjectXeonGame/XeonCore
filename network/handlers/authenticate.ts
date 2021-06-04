@@ -42,7 +42,8 @@ const authenticate: PacketHandler = {
     context.tty.on("cwd", (cwd) => {
       socket.send(JSON.stringify({ event: "cwd", cwd }));
     });
-    context.tty.emit("cwd", "/");
+    context.tty.env.HOME = `/home/${user.username}`;
+    context.tty.env.CWD = `/home/${user.username}`;
     await socket.send(`Welcome, ${user.username}.`);
   },
 };
